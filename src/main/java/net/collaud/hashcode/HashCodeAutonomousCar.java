@@ -73,11 +73,16 @@ public class HashCodeAutonomousCar extends AbstractHashCode {
 	protected void doSolve() {
 		int lastpercent = 0;
 		long start = System.currentTimeMillis();
+		long lastEnd = start;
+		long lastNbride = rides.size();
 		for (currentStep = 0; currentStep < nbStep; currentStep++) {
 			int percent = 100 * currentStep / nbStep;
 			if (percent != lastpercent) {
-				long time = (long)((System.currentTimeMillis() - start) * 0.001);
-				LOG.info("step {}/{} ({}%) in {}s, rideLeft={}", currentStep, nbStep, percent, time, rides.size());
+				long time = (long) ((System.currentTimeMillis() - start) * 0.001);
+				long deltaTime = time - lastEnd;
+				lastEnd = time;
+				LOG.info("step {}/{} ({}%) in {}s (delta={}), rideLeft={} (delta={})", currentStep, nbStep, percent, time, deltaTime, rides.size(), lastNbride-rides.size());
+				lastNbride = rides.size();
 				lastpercent = percent;
 			}
 			List<AutonomousCar> availableCars = getAvailableCars().collect(Collectors.toList());
