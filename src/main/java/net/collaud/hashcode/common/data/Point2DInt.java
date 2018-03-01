@@ -26,5 +26,11 @@ public class Point2DInt {
 		int b = column-pt.column;
 		return Double.valueOf(Math.ceil(Math.sqrt((a*a+ b*b)))).intValue();
 	}
+
+	public int squareDistance(Point2DInt pt){
+		int a = row-pt.row;
+		int b = column-pt.column;
+		return Math.abs(a)+Math.abs(b);
+	}
 	
 }
