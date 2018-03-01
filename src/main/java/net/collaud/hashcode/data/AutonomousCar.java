@@ -26,6 +26,6 @@ public class AutonomousCar {
 		int timeToStartRide = ride.getStart().squareDistance(currentPosition);
 		setCurrentPosition(ride.getEnd());
 		nextStepAvailable = timeToStartRide + ride.timeOfTravel();
-
+		assignedRide.add(ride);
 	}
 }

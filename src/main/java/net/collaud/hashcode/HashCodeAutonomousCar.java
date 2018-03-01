@@ -66,40 +66,32 @@ public class HashCodeAutonomousCar extends AbstractHashCode {
 		}
 	}
 
-	private int currentStep = 0;
+	private int currentStep;
 
 	@Override
 	protected void doSolve() {
-		for (int currentStep = 0; currentStep < nbStep; currentStep++) {
-			List<Ride> availableRides = getAvailableRides();
-			List<AutonomousCar> availableCar = getAvailableCars();
-
-			int max = Math.min(availableCar.size(), availableRides.size());
-			for (int i = 0; i < max; i++) {
-				AutonomousCar autonomousCar = availableCar.get(i);
-				Ride ride = availableRides.get(i);
-				autonomousCar.assignRide(ride);
-			}
-
+		for (currentStep = 0; currentStep < nbStep; currentStep++) {
+			getAvailableCars().forEach(car -> {
+				getAvailableRides(car).findFirst().ifPresent(ride -> {
+					car.assignRide(ride);
+				});
+			});
 		}
-		for (int i = 0; i < cars.size(); i++) {
-			AutonomousCar autonomousCar = cars.get(i);
-			autonomousCar.getAssignedRide().add(rides.get(i));
-		}
+//		cars.forEach(c -> {
+//			LOG.info("car {} has {} rides", c.getId(), c.getAssignedRide().size());
+//		});
 	}
 
-	protected List<AutonomousCar> getAvailableCars(){
+	protected Stream<AutonomousCar> getAvailableCars() {
 		return cars.stream()
-				.filter(c -> c.getNextStepAvailable()<currentStep)
-				.collect(Collectors.toList());
+				.filter(c -> c.getNextStepAvailable() < currentStep);
 	}
 
-	protected List<Ride> getAvailableRides() {
+	protected Stream<Ride> getAvailableRides(AutonomousCar car) {
 		return rides.stream()
 				.filter(r -> !r.isDone())
-				.filter(r -> r.getEarliestStart()<=currentStep)
-				.filter(r -> r.canBeTaken(currentStep))
-				.collect(Collectors.toList());
+				.filter(r -> r.earlyStartToArriveInTime(car.getCurrentPosition()) <= currentStep)
+				.filter(r -> r.canBeTaken(currentStep));
 	}
 
 

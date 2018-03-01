@@ -21,4 +21,8 @@ public class Ride {
 	public boolean canBeTaken(int currentTime) {
 		return (currentTime + timeOfTravel()) <= latestFinish;
 	}
+
+	public int earlyStartToArriveInTime(Point2DInt carPos) {
+		return this.earliestStart - carPos.squareDistance(start);
+	}
 }
