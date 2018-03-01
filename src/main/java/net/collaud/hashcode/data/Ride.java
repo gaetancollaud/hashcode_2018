@@ -12,4 +12,13 @@ public class Ride {
 	private Point2DInt end;
 	private int earliestStart;
 	private int latestFinish;
+	private boolean done = false;
+
+	public int timeOfTravel() {
+		return end.squareDistance(start);
+	}
+
+	public boolean canBeTaken(int currentTime) {
+		return (currentTime + timeOfTravel()) <= latestFinish;
+	}
 }

@@ -64,9 +64,11 @@ public class HashCodeAutonomousCar extends AbstractHashCode {
 		}
 	}
 
+	private int currentStep = 0;
+
 	@Override
 	protected void doSolve() {
-		for(int i=0; i<nbStep; i++){
+		for (int currentStep = 0; currentStep < nbStep; currentStep++) {
 
 		}
 		for (int i = 0; i < cars.size(); i++) {
@@ -75,8 +77,12 @@ public class HashCodeAutonomousCar extends AbstractHashCode {
 		}
 	}
 
-	protected List<Ride> getAvailableRides(){
-		return null;
+	protected List<Ride> getAvailableRides() {
+		return rides.stream()
+				.filter(r -> !r.isDone())
+				.filter(r -> r.getEarliestStart()>=currentStep)
+				.filter(r -> r.canBeTaken(currentStep))
+				.collect(Collectors.toList());
 	}
 
 
