@@ -13,6 +13,7 @@ public class Ride {
 	private int earliestStart;
 	private int latestFinish;
 	private boolean done = false;
+	private int sort;
 
 	public int timeOfTravel() {
 		return end.squareDistance(start);
@@ -23,6 +24,7 @@ public class Ride {
 	}
 
 	public int earlyStartToArriveInTime(Point2DInt carPos) {
-		return this.earliestStart - carPos.squareDistance(start);
+		sort = this.earliestStart - carPos.squareDistance(start);
+		return sort;
 	}
 }

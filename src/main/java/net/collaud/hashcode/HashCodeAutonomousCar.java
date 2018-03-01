@@ -67,15 +67,40 @@ public class HashCodeAutonomousCar extends AbstractHashCode {
 	}
 
 	private int currentStep;
+	private Object lock = new Object();
 
 	@Override
 	protected void doSolve() {
+		int lastpercent = 0;
+		long start = System.currentTimeMillis();
 		for (currentStep = 0; currentStep < nbStep; currentStep++) {
-			getAvailableCars().forEach(car -> {
-				getAvailableRides(car).findFirst().ifPresent(ride -> {
-					car.assignRide(ride);
+			int percent = 100 * currentStep / nbStep;
+			if (percent != lastpercent) {
+				long time = (long)((System.currentTimeMillis() - start) * 0.001);
+				LOG.info("step {}/{} ({}%) in {}s, rideLeft={}", currentStep, nbStep, percent, time, rides.size());
+				lastpercent = percent;
+			}
+			List<AutonomousCar> availableCars = getAvailableCars().collect(Collectors.toList());
+			List<Ride> availableRides = getAvailableRides().collect(Collectors.toList());
+
+			availableCars.stream().parallel().forEach(car -> {
+				availableRides.stream()
+						.filter(r -> !r.isDone())
+						.filter(r -> r.earlyStartToArriveInTime(car.getCurrentPosition()) <= currentStep)
+						.sorted(Comparator.comparing(r -> r.getStart().euclidianDistanceCeil(car.getCurrentPosition())))
+						.findFirst().ifPresent(ride -> {
+					synchronized (lock) {
+						if (!ride.isDone()) {
+							car.assignRide(ride);
+						}
+					}
 				});
 			});
+
+			rides = rides.stream()
+					.filter(r -> !r.isDone())
+					.filter(r -> r.canBeTaken(currentStep))
+					.collect(Collectors.toList());
 		}
 //		cars.forEach(c -> {
 //			LOG.info("car {} has {} rides", c.getId(), c.getAssignedRide().size());
@@ -87,11 +112,12 @@ public class HashCodeAutonomousCar extends AbstractHashCode {
 				.filter(c -> c.getNextStepAvailable() < currentStep);
 	}
 
-	protected Stream<Ride> getAvailableRides(AutonomousCar car) {
+	protected Stream<Ride> getAvailableRides() {
 		return rides.stream()
 				.filter(r -> !r.isDone())
-				.filter(r -> r.earlyStartToArriveInTime(car.getCurrentPosition()) <= currentStep)
+//				.filter(r -> r.earlyStartToArriveInTime(car.getCurrentPosition()) <= currentStep)
 				.filter(r -> r.canBeTaken(currentStep));
+//				.sorted(Comparator.comparing(r -> r.getSort()));
 	}
 
 
