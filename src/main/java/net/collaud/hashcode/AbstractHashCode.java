@@ -28,15 +28,16 @@ abstract public class AbstractHashCode {
 		LOG.info("Solving {} took {}s and gave {}pts", inputFile, ((end - start) / 1000), computePoints());
 	}
 
-	protected List<String> getLines(){
+	protected List<String> getLines() {
 		InputReader reader = new InputReader(inputFile);
 		return reader.getRawLines();
 	}
 
-	protected void writeOutput(Consumer<StringBuilder> consumer){
+	protected void writeOutput(Consumer<StringBuilder> consumer) {
 		OutputWriter ow = new OutputWriter(outputFile);
 		StringBuilder sb = ow.getStringBuilder();
 		consumer.accept(sb);
+			sb.deleteCharAt(sb.length() - 1);
 		ow.writeFile();
 		//System.out.println(ow.getContent());
 	}

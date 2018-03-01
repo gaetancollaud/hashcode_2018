@@ -14,15 +14,16 @@ public class Application {
 		
 		List<String> files = Arrays.asList(
 				"1_example",
-				"2_small",
-				"3_medium",
-				"4_big"
+				"2_should_be_easy",
+				"3_no_hurry"
+//				"4_metropolis",
+//				"4_high_bonus"
 				);
 		
 		files.parallelStream().forEach(f -> {
 			String in = "data/inputs/"+f+".in";
 			String out = "data/outputs/"+f+".out";
-			new HashCodePizza(in, out).solve();
+			new HashCodeAutonomousCar(in, out).solve();
 		});
 
 
