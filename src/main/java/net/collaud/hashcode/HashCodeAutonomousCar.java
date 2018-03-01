@@ -66,28 +66,17 @@ public class HashCodeAutonomousCar extends AbstractHashCode {
 
 	@Override
 	protected void doSolve() {
-		cars.get(0).getAssignedRide().add(rides.get(0));
-//		BiPredicate<Integer, Integer> predicate = (tomato, mushroom) -> tomato >= minIngredient && tomato <= maxIngredient && mushroom >= minIngredient && mushroom <= maxIngredient;
-//		List<Pair<Integer, Integer>> sliceSize = getSliceSize();
-//
-//		Object lock = new Object();
-//
-//		int iteration = 1;
-//		PerfUtil.parallelIntStream(iteration).forEach(i -> {
-//			Pizza myPizza = pizza.clone();
-//			List<Slice> mySlice = solveOnce(myPizza, predicate, sliceSize);
-//			perfectionne(myPizza, mySlice, predicate);
-//			int points = myPizza.getPoints();
-//			LOG.info("[{}] Solutions found with {} slices, score {}pts", i, mySlice.size(), points);
-//			synchronized (lock) {
-//				if (bestPoints.get() < points) {
-//					bestPoints.set(points);
-//					bestSlices = mySlice;
-//				}
-//			}
-//		});
+		for(int i=0; i<nbStep; i++){
 
-//		System.out.println(pizza);
+		}
+		for (int i = 0; i < cars.size(); i++) {
+			AutonomousCar autonomousCar = cars.get(i);
+			autonomousCar.getAssignedRide().add(rides.get(i));
+		}
+	}
+
+	protected List<Ride> getAvailableRides(){
+		return null;
 	}
 
 
@@ -95,8 +84,7 @@ public class HashCodeAutonomousCar extends AbstractHashCode {
 	protected void writeOutput() {
 		writeOutput(sb -> {
 			cars.stream().forEach(c -> c.print(sb));
-//			sb.append(bestSlices.size()).append('\n');
-//			bestSlices.forEach(s -> s.print(sb));
+			sb.deleteCharAt(sb.length() - 1);
 		});
 	}
 

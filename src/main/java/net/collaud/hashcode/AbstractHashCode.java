@@ -37,7 +37,6 @@ abstract public class AbstractHashCode {
 		OutputWriter ow = new OutputWriter(outputFile);
 		StringBuilder sb = ow.getStringBuilder();
 		consumer.accept(sb);
-			sb.deleteCharAt(sb.length() - 1);
 		ow.writeFile();
 		//System.out.println(ow.getContent());
 	}

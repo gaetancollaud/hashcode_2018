@@ -15,9 +15,9 @@ public class Application {
 		List<String> files = Arrays.asList(
 				"1_example",
 				"2_should_be_easy",
-				"3_no_hurry"
-//				"4_metropolis",
-//				"4_high_bonus"
+				"3_no_hurry",
+				"4_metropolis",
+				"5_high_bonus"
 				);
 		
 		files.parallelStream().forEach(f -> {
