@@ -46,6 +46,7 @@ public class HashCodeAutonomousCar extends AbstractHashCode {
 			cars.add(AutonomousCar.builder().id(i + 1)
 					.currentPosition(new Point2DInt(0, 0))
 					.assignedRide(new ArrayList<>())
+					.nextStepAvailable(-100)
 					.build());
 		}
 
@@ -56,7 +57,8 @@ public class HashCodeAutonomousCar extends AbstractHashCode {
 					.start(new Point2DInt(Integer.parseInt(line[0]), Integer.parseInt(line[1])))
 					.end(new Point2DInt(Integer.parseInt(line[2]), Integer.parseInt(line[3])))
 					.earliestStart(Integer.parseInt(line[4]))
-					.earliestStart(Integer.parseInt(line[5]))
+					.latestFinish(Integer.parseInt(line[5]))
+					.done(false)
 					.build());
 		}
 		if (nbrides != rides.size()) {
@@ -69,6 +71,15 @@ public class HashCodeAutonomousCar extends AbstractHashCode {
 	@Override
 	protected void doSolve() {
 		for (int currentStep = 0; currentStep < nbStep; currentStep++) {
+			List<Ride> availableRides = getAvailableRides();
+			List<AutonomousCar> availableCar = getAvailableCars();
+
+			int max = Math.min(availableCar.size(), availableRides.size());
+			for (int i = 0; i < max; i++) {
+				AutonomousCar autonomousCar = availableCar.get(i);
+				Ride ride = availableRides.get(i);
+				autonomousCar.assignRide(ride);
+			}
 
 		}
 		for (int i = 0; i < cars.size(); i++) {
@@ -77,10 +88,16 @@ public class HashCodeAutonomousCar extends AbstractHashCode {
 		}
 	}
 
+	protected List<AutonomousCar> getAvailableCars(){
+		return cars.stream()
+				.filter(c -> c.getNextStepAvailable()<currentStep)
+				.collect(Collectors.toList());
+	}
+
 	protected List<Ride> getAvailableRides() {
 		return rides.stream()
 				.filter(r -> !r.isDone())
-				.filter(r -> r.getEarliestStart()>=currentStep)
+				.filter(r -> r.getEarliestStart()<=currentStep)
 				.filter(r -> r.canBeTaken(currentStep))
 				.collect(Collectors.toList());
 	}

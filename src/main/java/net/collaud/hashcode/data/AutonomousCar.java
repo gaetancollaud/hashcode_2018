@@ -10,13 +10,22 @@ import java.util.List;
 @Data
 public class AutonomousCar {
 	private int id;
-	private Point2DInt currentPosition = new Point2DInt(0, 0);
+	private Point2DInt currentPosition;
 	private Ride currentRide;
 	private List<Ride> assignedRide;
+	private int nextStepAvailable;
 
 	public void print(StringBuilder sb) {
 		sb.append(assignedRide.size());
 		assignedRide.forEach(r -> sb.append(' ').append(r.getId()));
 		sb.append('\n');
+	}
+
+	public void assignRide(Ride ride) {
+		ride.setDone(true);
+		int timeToStartRide = ride.getStart().squareDistance(currentPosition);
+		setCurrentPosition(ride.getEnd());
+		nextStepAvailable = timeToStartRide + ride.timeOfTravel();
+
 	}
 }
