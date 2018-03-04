@@ -14,11 +14,12 @@ public class Application {
 	public static void main(String[] args) {
 
 		List<String> files = new ArrayList<>();
-//		files.add("1_example");
-//		files.add("2_should_be_easy");
-//		files.add("3_no_hurry");
+		files.add("1_example");
+		files.add("2_should_be_easy");
+		files.add("3_no_hurry");
 		files.add("4_metropolis");
-//		files.add("5_high_bonus");
+		files.add("5_high_bonus");
+
 
 		files.parallelStream().forEach(f -> {
 			String in = "data/inputs/" + f + ".in";
@@ -26,15 +27,14 @@ public class Application {
 			new HashCodeAutonomousCar(in, out).solve();
 		});
 
-
-		new Thread(new ZipSources("data/outputs/0_hashcode.zip")
+		new ZipSources("data/outputs/0_hashcode.zip")
 				.addFolder("src")
 				.addFile("README.md")
 				.addFile("pom.xml")
 				.addFile("LICENSE")
 				.addFile(".gitignore")
-				.getRunnable())
-				.start();
+				.getRunnable().run();
+
 
 	}
 

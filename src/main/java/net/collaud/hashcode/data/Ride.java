@@ -27,4 +27,8 @@ public class Ride {
 		sort = this.earliestStart - carPos.squareDistance(start);
 		return sort;
 	}
+
+	public int getTime(){
+		return this.start.squareDistance(this.end);
+	}
 }

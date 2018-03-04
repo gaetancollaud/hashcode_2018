@@ -7,6 +7,7 @@ import net.collaud.hashcode.common.utils.PerfUtil;
 import net.collaud.hashcode.data.AutonomousCar;
 import net.collaud.hashcode.data.MyMap;
 import net.collaud.hashcode.data.Ride;
+import net.collaud.hashcode.data.RidePlan;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.lang3.tuple.Pair;
 
@@ -71,58 +72,40 @@ public class HashCodeAutonomousCar extends AbstractHashCode {
 
 	@Override
 	protected void doSolve() {
-		int lastpercent = 0;
-		long start = System.currentTimeMillis();
-		long lastEnd = start;
-		long lastNbride = rides.size();
-		for (currentStep = 0; currentStep < nbStep; currentStep++) {
-			int percent = 100 * currentStep / nbStep;
-			if (percent != lastpercent) {
-				long time = (long) ((System.currentTimeMillis() - start) * 0.001);
-				long deltaTime = time - lastEnd;
-				lastEnd = time;
-				LOG.info("step {}/{} ({}%) in {}s (delta={}), rideLeft={} (delta={})", currentStep, nbStep, percent, time, deltaTime, rides.size(), lastNbride-rides.size());
-				lastNbride = rides.size();
-				lastpercent = percent;
+		List<RidePlan> ridePlans = new ArrayList<>();
+		ridePlans.add(newRidePlan());
+
+		rides.stream().forEach(r -> {
+			boolean fitInOne = false;
+			for (RidePlan rp : ridePlans) {
+				if (rp.canTakeRide(r)) {
+					rp.addRide(r);
+					fitInOne = true;
+					break;
+				}
 			}
-			List<AutonomousCar> availableCars = getAvailableCars().collect(Collectors.toList());
-			List<Ride> availableRides = getAvailableRides().collect(Collectors.toList());
+			if (!fitInOne) {
+				RidePlan newRp = newRidePlan();
+				newRp.addRide(r);
+				ridePlans.add(newRp);
+			}
+		});
 
-			availableCars.stream().parallel().forEach(car -> {
-				availableRides.stream()
-						.filter(r -> !r.isDone())
-						.filter(r -> r.earlyStartToArriveInTime(car.getCurrentPosition()) <= currentStep)
-						.sorted(Comparator.comparing(r -> r.getStart().euclidianDistanceCeil(car.getCurrentPosition())))
-						.findFirst().ifPresent(ride -> {
-					synchronized (lock) {
-						if (!ride.isDone()) {
-							car.assignRide(ride);
-						}
-					}
-				});
-			});
+		Collections.sort(ridePlans, Comparator.comparing(RidePlan::getPoints).reversed());
 
-			rides = rides.stream()
-					.filter(r -> !r.isDone())
-					.filter(r -> r.canBeTaken(currentStep))
-					.collect(Collectors.toList());
+		int max = Math.min(cars.size(), ridePlans.size());
+		for (int i = 0; i < max; i++) {
+			cars.get(i).setAssignedRide(ridePlans.get(i).getRides());
 		}
-//		cars.forEach(c -> {
-//			LOG.info("car {} has {} rides", c.getId(), c.getAssignedRide().size());
-//		});
+
+		LOG.info("{} rides in {} ride plans, for {} cars", rides.size(), ridePlans.size(), cars.size());
 	}
 
-	protected Stream<AutonomousCar> getAvailableCars() {
-		return cars.stream()
-				.filter(c -> c.getNextStepAvailable() < currentStep);
-	}
-
-	protected Stream<Ride> getAvailableRides() {
-		return rides.stream()
-				.filter(r -> !r.isDone())
-//				.filter(r -> r.earlyStartToArriveInTime(car.getCurrentPosition()) <= currentStep)
-				.filter(r -> r.canBeTaken(currentStep));
-//				.sorted(Comparator.comparing(r -> r.getSort()));
+	protected RidePlan newRidePlan() {
+		return RidePlan.builder()
+				.bonus(bonus)
+				.steps(nbStep)
+				.build();
 	}
 
 
