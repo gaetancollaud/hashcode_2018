@@ -75,6 +75,8 @@ public class HashCodeAutonomousCar extends AbstractHashCode {
 		List<RidePlan> ridePlans = new ArrayList<>();
 		ridePlans.add(newRidePlan());
 
+		Collections.sort(rides, Comparator.comparing(Ride::getTime).reversed());
+
 		rides.stream().forEach(r -> {
 			boolean fitInOne = false;
 			for (RidePlan rp : ridePlans) {
@@ -92,8 +94,22 @@ public class HashCodeAutonomousCar extends AbstractHashCode {
 		});
 
 		Collections.sort(ridePlans, Comparator.comparing(RidePlan::getPoints).reversed());
-
 		int max = Math.min(cars.size(), ridePlans.size());
+
+		ridePlans.stream().skip(max - 1).forEach(rp -> {
+			ridePlans.stream().limit(max - 1).forEach(rpChoosed -> {
+				Iterator<Ride> iterator = rp.getRides().iterator();
+				while(iterator.hasNext()){
+					Ride r = iterator.next();
+					if(rpChoosed.canTakeRide(r)){
+						rpChoosed.addRide(r);
+						iterator.remove();
+					}
+				}
+			});
+		});
+
+
 		for (int i = 0; i < max; i++) {
 			cars.get(i).setAssignedRide(ridePlans.get(i).getRides());
 		}
