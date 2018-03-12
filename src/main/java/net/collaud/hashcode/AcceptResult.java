@@ -8,6 +8,8 @@ import net.collaud.hashcode.common.data.Point2DInt;
  */
 @Data
 public class AcceptResult {
+    private int nextPositionTimeLost;
+    private AcceptResult nextRide;
     private RideInfo rideInfo;
     boolean startPerfect;
     boolean endPerfect;
@@ -16,12 +18,13 @@ public class AcceptResult {
     int end;
     int timeLost;
     int ratio;
+    int points;
     AutonomousCarInfo car;
     Point2DInt sourcePoint;
     Point2DInt targetPoint;
 
     public AutonomousCarInfo apply() {
-        car.addRide(this, rideInfo);
+        car.addRide(this);
         return car;
     }
 }

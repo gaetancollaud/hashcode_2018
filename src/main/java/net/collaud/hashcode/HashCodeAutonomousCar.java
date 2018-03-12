@@ -72,6 +72,7 @@ public class HashCodeAutonomousCar extends AbstractHashCode {
 
 	@Override
 	protected void doSolve() {
+		//JgiAlgo.Compute(rides, cars, bonus, nbStep);
 		List<RidePlan> ridePlans = new ArrayList<>();
 		ridePlans.add(newRidePlan());
 

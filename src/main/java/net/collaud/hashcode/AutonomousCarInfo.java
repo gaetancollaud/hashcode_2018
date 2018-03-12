@@ -17,34 +17,8 @@ import java.util.stream.Collectors;
 @Data
 public class AutonomousCarInfo {
 
-    public static void Compute(List<Ride> rides, List<AutonomousCar> cars, int bonus, int nbStep) {
-        List<RideInfo> ridesInfo = rides.stream().map(e -> new RideInfo(e, 10)).sorted((e1, e2) -> Long.compare(e1.ratio, e2.ratio)).collect(Collectors.toList());
-        List<AutonomousCarInfo> carsInfo = cars.stream().map(e -> new AutonomousCarInfo(e, nbStep)).collect(Collectors.toList());
-        int lastpercent = 0;
-        long start = System.currentTimeMillis();
-        long lastEnd = start;
-        long lastNbride = rides.size();
-        int i = 0;
-        while(true) {
-            List<AcceptResult> tests = ridesInfo.stream().map(rideInfo -> carsInfo.stream().map(e -> e.canAccept(rideInfo, bonus, 10)).filter(f -> f != null)).flatMap(e -> e).sorted((e1, e2) -> Long.compare(e1.getRatio(), e2.getRatio())).collect(Collectors.toList());
-            AcceptResult result = tests.size() == 0 ? null : tests.get(tests.size() - 1);
-            if (result == null) {
-                break;
-            }
-            ridesInfo.remove(result.getRideInfo());
-            AutonomousCarInfo car = result.apply();
-            if(!car.hasAcceptation()) {
-                carsInfo.remove(car);
-                if(carsInfo.size() == 0) {
-                    break;
-                }
-            }
-            i++;
-        }
-    }
-
     AutonomousCar car;
-    TreeSet<AcceptResult> rides = new TreeSet<>(Comparator.comparing(AcceptResult::getStart));
+    List<AcceptResult> rides = new ArrayList<>();
     List<Integer> starts;
     List<Integer> ends;
     List<Point2DInt> positions = new ArrayList<>();
@@ -59,48 +33,104 @@ public class AutonomousCarInfo {
         computeSteps();
     }
 
-    public void addRide(AcceptResult result, RideInfo ride) {
+    public void addRide(AcceptResult result) {
         rides.add(result);
-        car.getAssignedRide().add(ride.ride);
+        if(result.getNextRide() != null) {
+            result.getNextRide().timeLost = result.getNextPositionTimeLost();
+        }
+        if(rides.size() > 1) {
+            rides = rides.stream().sorted(Comparator.comparing(AcceptResult::getStart)).collect(Collectors.toList());
+        }
         computeSteps();
     }
 
-    public AcceptResult canAccept(RideInfo ride, int bonus, int lag) {
+    public void reduce() {
+        int crtStart = 0;
+        for (int i = 0; i < rides.size(); i++) {
+            AcceptResult ride = rides.get(i);
+            if(!ride.isStartPerfect()) {
+                ride.start = crtStart;
+                ride.setEnd(ride.start + ride.getRideInfo().distance + ride.timeLost);
+            }
+            crtStart = ride.end;
+        }
+    }
+
+    public AcceptResult canAccept(RideInfo ride, int bonus, int timeToGoPenality, int ridesCountPenality, boolean prefereBonus) {
         AcceptResult bestResult = null;
         for (int i = 0;i < nbPhases;i++) {
+            int crtStart = starts.get(i);
+            int crtEnd = ends.get(i);
             int timeToGo = positions.get(i).squareDistance(ride.getRide().getStart());
-            AcceptResult result = null;
-            if((ride.start == starts.get(i) + timeToGo && ride.start + ride.distance <= ends.get(i))) {
-                // At start
-                result = new AcceptResult();
-                result.setStart(ride.start);
-                result.setTargetPoint(ride.getRide().getEnd());
-            } else if((ride.start >= starts.get(i) + timeToGo && ride.start + ride.distance <= ends.get(i))) {
-                // To end
-                result = new AcceptResult();
-                result.setStart(ends.get(i) - ride.distance - timeToGo);
-            } else if(ride.end <= ends.get(i) && ride.end - ride.distance - timeToGo >= ride.start) {
-                // between
-                result = new AcceptResult();
-                result.setStart(ride.end - ride.distance - timeToGo);
+            int nextPositionTimeLost = 0;
+            Point2DInt targetPosition = positions.size() > i + 1 ? positions.get(i + 1) : null;
+            AcceptResult nextRide = positions.size() > i + 1 ? rides.get(i) : null;
+            if(targetPosition != null) {
+                nextPositionTimeLost = targetPosition.squareDistance(ride.getRide().getEnd());
+                crtEnd = ends.get(i) - nextPositionTimeLost;
             }
-            if(result != null) {
+            Integer start;
+            int additionalBonus = 0;
+            if((ride.start == crtStart + timeToGo && ride.start + ride.distance <= crtEnd)) {
+                start = ride.start - timeToGo;
+                additionalBonus = bonus + ride.distance;
+            } else if((ride.start > crtStart + timeToGo && ride.start + ride.distance <= crtEnd)) {
+                start = ride.start - timeToGo;
+            } else if(!prefereBonus && (ride.start >= crtStart + timeToGo && ride.start + ride.distance <= crtEnd)) {
+                start = crtEnd - ride.distance - timeToGo;
+                //start = crtStart;
+                //start = ride.start - timeToGo;
+            } else if(!prefereBonus && (ride.end <= crtEnd && ride.end - ride.distance - timeToGo >= crtStart)) {
+                start = ride.end - ride.distance - timeToGo;
+                //start = crtStart;
+                //start = ride.start - timeToGo;
+            } else {
+                start = null;
+            }
+            //List<AcceptResult> ridesAfter = rides.stream().filter(r -> r.start > result.start).collect(Collectors.toList());
+            if(start != null) {
+                if(rides.size() > 0){
+                    int value = 0;
+                }
+                AcceptResult result = new AcceptResult();
                 result.setRideInfo(ride);
                 result.setIndex(i);
                 result.setCar(this);
+                result.setStart(start);
                 result.setTargetPoint(ride.getRide().getEnd());
                 result.setSourcePoint(positions.get(i));
-                result.setEnd(result.start + ride.distance);
-                result.setStartPerfect(ride.start == starts.get(i) + timeToGo);
+                result.setEnd(result.start + ride.distance + timeToGo);
+                result.setStartPerfect(ride.start == start + timeToGo);
                 result.setEndPerfect(ride.start + ride.distance == ends.get(i));
                 result.setTimeLost(timeToGo);
-                result.setRatio((result.isStartPerfect() ? bonus : 0) - timeToGo + ride.distance);
+                result.setNextPositionTimeLost(nextPositionTimeLost);
+                result.setNextRide(nextRide);
+                result.setPoints((result.isStartPerfect() ? bonus : 0) + ride.distance);
+                result.setRatio(result.points + additionalBonus - (timeToGo * timeToGoPenality) - (rides.size() * ridesCountPenality));
+                /*if(!check(result)) {
+                    canAccept(ride, bonus, timeToGoPenality, ridesCountPenality, prefereBonus);
+                }*/
                 if(bestResult == null  || result.ratio > bestResult.ratio) {
                     bestResult = result;
                 }
             }
         }
         return bestResult;
+    }
+
+    private boolean check(AcceptResult ride) {
+        boolean isValid = false;
+        for (int j = 0;j < nbPhases;j++) {
+            int crtStart2 = starts.get(j);
+            int crtEnd2 = ends.get(j);
+            if (ride.start >= crtStart2 && ride.end <= crtEnd2) {
+                isValid = true;
+            }
+        }
+        if(!isValid) {
+            int value = 0;
+        }
+        return isValid;
     }
 
     public boolean hasAcceptation() {
