@@ -1,9 +1,11 @@
 package net.collaud.hashcode;
 
+import lombok.Builder;
 import lombok.extern.slf4j.Slf4j;
 import net.collaud.hashcode.common.data.Point2DInt;
 import net.collaud.hashcode.common.reader.InputReader;
 import net.collaud.hashcode.common.utils.PerfUtil;
+import net.collaud.hashcode.common.utils.TimerUtil;
 import net.collaud.hashcode.data.AutonomousCar;
 import net.collaud.hashcode.data.MyMap;
 import net.collaud.hashcode.data.Ride;
@@ -13,19 +15,27 @@ import org.apache.commons.lang3.tuple.Pair;
 
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.BiPredicate;
+import java.util.function.Function;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-@Slf4j
 public class HashCodeAutonomousCar extends AbstractHashCode {
 
 	protected MyMap map;
 	protected List<Ride> rides = new ArrayList<>();
 	protected List<AutonomousCar> cars = new ArrayList<>();
-	protected AtomicInteger bestPoints = new AtomicInteger(0);
+	protected AtomicLong bestPoints = new AtomicLong(0);
 	protected int nbStep;
 	protected int bonus;
+
+	@Builder
+	public static class SolutionChoosed{
+		List<RidePlan> plans;
+		long point;
+	}
 
 
 	public HashCodeAutonomousCar(String inputFile, String outputFile) {
@@ -63,65 +73,98 @@ public class HashCodeAutonomousCar extends AbstractHashCode {
 					.build());
 		}
 		if (nbrides != rides.size()) {
-			LOG.error("nbRide={}, rides.siez={}", nbrides, rides);
+			LOG.error("nbRide={}, rideTaken.siez={}", nbrides, rides);
 		}
 	}
 
-	private int currentStep;
-	private Object lock = new Object();
-
-	@Override
-	protected void doSolve() {
-		//JgiAlgo.Compute(rides, cars, bonus, nbStep);
+	protected static List<RidePlan> doSolveOnce(List<Ride> rides, Supplier<RidePlan> newRideSupplier, int carSize) {
 		List<RidePlan> ridePlans = new ArrayList<>();
-		ridePlans.add(newRidePlan());
+		ridePlans.add(newRideSupplier.get());
 
-		Collections.sort(rides, Comparator.comparing(Ride::getTime).reversed());
+		Collections.shuffle(rides);
+//		Collections.sort(rides, Comparator.comparing(Ride::getTime).reversed());
 
-		rides.stream().forEach(r -> {
+		for (int i = 0; i < rides.size(); i++) {
+			Ride r = rides.get(i);
 			boolean fitInOne = false;
 			for (RidePlan rp : ridePlans) {
 				if (rp.canTakeRide(r)) {
-					rp.addRide(r);
 					fitInOne = true;
 					break;
 				}
 			}
 			if (!fitInOne) {
-				RidePlan newRp = newRidePlan();
-				newRp.addRide(r);
+				RidePlan newRp = newRideSupplier.get();
+				newRp.canTakeRide(r);
 				ridePlans.add(newRp);
 			}
-		});
+		}
 
 		Collections.sort(ridePlans, Comparator.comparing(RidePlan::getPoints).reversed());
-		int max = Math.min(cars.size(), ridePlans.size());
+		int max = Math.min(carSize, ridePlans.size());
 
 		ridePlans.stream().skip(max - 1).forEach(rp -> {
 			ridePlans.stream().limit(max - 1).forEach(rpChoosed -> {
 				Iterator<Ride> iterator = rp.getRides().iterator();
-				while(iterator.hasNext()){
+				while (iterator.hasNext()) {
 					Ride r = iterator.next();
-					if(rpChoosed.canTakeRide(r)){
-						rpChoosed.addRide(r);
+					if (rpChoosed.canTakeRide(r)) {
 						iterator.remove();
 					}
 				}
 			});
 		});
 
+		return ridePlans;
+	}
 
+	@Override
+	protected void doSolve() {
+
+		int maxIter = 100;
+
+		SolutionChoosed solution = SolutionChoosed.builder()
+				.point(-1)
+				.build();
+
+		TimerUtil timer = TimerUtil.start(TimerUtil.TimerConfig.builder()
+				.logger(LOG)
+				.maxStep(maxIter)
+				.build());
+
+		AtomicInteger index = new AtomicInteger(1);
+
+		Stream.iterate(0, n -> n + 1)
+				.limit(maxIter)
+				.parallel()
+				.forEach(i -> {
+					List<RidePlan> ridePlans = doSolveOnce(new ArrayList<>(rides), () -> newRidePlan(), cars.size());
+					Long points = ridePlans.stream().collect(Collectors.summingLong(r -> r.getPoints()));
+					synchronized (solution) {
+						if (points > solution.point) {
+							solution.plans = ridePlans;
+							solution.point = points;
+						}
+					}
+					timer.loop(index.getAndIncrement(), () -> "size: " + ridePlans.size() + ", pts:" + points);
+				});
+
+
+		int max = Math.min(cars.size(), solution.plans.size());
 		for (int i = 0; i < max; i++) {
-			cars.get(i).setAssignedRide(ridePlans.get(i).getRides());
+			RidePlan ridePlan = solution.plans.get(i);
+			cars.get(i).setAssignedRide(ridePlan.getRides());
 		}
 
-		LOG.info("{} rides in {} ride plans, for {} cars", rides.size(), ridePlans.size(), cars.size());
+		bestPoints.set(solution.point);
+
+		LOG.info("{} rideTaken in {} ride plans, for {} cars", rides.size(), solution.plans.size(), cars.size());
 	}
 
 	protected RidePlan newRidePlan() {
 		return RidePlan.builder()
 				.bonus(bonus)
-				.steps(nbStep)
+				.maxSteps(nbStep)
 				.build();
 	}
 
@@ -135,7 +178,7 @@ public class HashCodeAutonomousCar extends AbstractHashCode {
 	}
 
 	@Override
-	protected int computePoints() {
+	protected long computePoints() {
 		return bestPoints.get();
 	}
 

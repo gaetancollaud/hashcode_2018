@@ -14,11 +14,11 @@ public class Application {
 	public static void main(String[] args) {
 
 		List<String> files = new ArrayList<>();
-		files.add("1_example");
-		files.add("2_should_be_easy");
-		files.add("3_no_hurry");
+//		files.add("1_example");
+//		files.add("2_should_be_easy");
+//		files.add("3_no_hurry");
 		files.add("4_metropolis");
-		files.add("5_high_bonus");
+//		files.add("5_high_bonus");
 
 
 		files.parallelStream().forEach(f -> {
